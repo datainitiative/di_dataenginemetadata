@@ -1,0 +1,147 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_static bootstrapped_goodies_tags %}
+{% load custom_filter %}{% load custom_tag %}
+{% block title %}Home | Geocoding Tool{% endblock %}
+{% block extrastyle %}
+	<style>
+	.dataset-card {
+		box-shadow: 0 0 2px rgba(0,0,0,.14),0 2px 4px rgba(0,0,0,.28)!important;
+	}
+	</style>
+{% endblock %}
+
+{% block extra-sidebar %}
+	<ul class="nav in" id="side-menu">
+		<li class="sidebar-search">
+			<small>Search & Filters<br/><br/></small>
+			<div class="form-group input-group">
+				<input id="txt-search" type="text" class="form-control search-query request-filter" placeholder="Search in results">
+				<span class="input-group-btn">
+					<button id="btn-search" class="btn btn-default" type="button"><i class="fa fa-search"></i></button>
+				</span>
+			</div>
+			<div class="form-group">
+				<i class="fa fa-filter fa-lg fa-fw"></i>&nbsp; By Year&nbsp;
+				<select id="sel-year" class="form-control request-filter">
+					<option value=""> -- ALL -- </option>
+					{% for year in years %}
+						<option value="{{year}}">{{year}}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="form-group">
+				<i class="fa fa-filter fa-lg fa-fw"></i>&nbsp; By Geography&nbsp;
+				<select id="sel-geography" class="form-control request-filter">
+					<option value=""> -- ALL -- </option>
+					{% for geography in geographys %}
+						<option value="{{geography}}">{{geography}}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="form-group">
+				<i class="fa fa-filter fa-lg fa-fw"></i>&nbsp; By Extent&nbsp;
+				<select id="sel-extent" class="form-control request-filter">
+					<option value=""> -- ALL -- </option>
+					{% for extent in extents %}
+						<option value="{{extent}}">{{extent}}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<a id="btn-clearfilters" class="btn btn-outline btn-info btn-block sidebar-button">Clear Filters</a>
+		</li>
+	</ul>
+{% endblock %}
+
+{% block content %}
+{% block navbar %}{% endblock %}
+<div id="content-main">
+	{% if nometa_tables %}
+		<div class="row">
+			<div class="col-sm-12">
+				<h4 class="pager-header">Datasets to add metadata</h4>
+			</div>
+		</div>
+		{% for table in nometa_tables %}
+			<div class="row">
+				<div class="col-sm-10 col-md-10 col-lg-11">
+					<div class="well well-lg text-left dataset-card">
+						<div class="row">
+							<div class="col-sm-8 col-md-8 col-lg-9">
+								<h3><i class="fa fa-table fa-fw"></i> {{table.table_name}}</h3>
+							</div>
+							<div class="col-sm-4 col-md-4 col-lg-3">
+								<h3><a id="start-single-task" class="btn btn-outline btn-info pull-left" href="{% setting 'ADMIN_ROOT_URL' %}/admin/demetadataapp/sourcedatainventory/add/?id={{table.table_id}}&coverage={{table.metadata.coverage}}&geography={{table.metadata.geography}}&geometry={{table.metadata.geometry}}&year={{table.metadata.year}}&title={{table.metadata.title}}&location={{table.metadata.filepath}}">Add New Metadata</a></h3>
+							</div>
+						</div>
+						{% if table.related_tables %}
+							<hr/>
+							<h3><small>Click a related table to duplicate metadata</small></h3>
+							{% for rt in table.related_tables %}
+								<a class="btn btn-outline btn-warning" href="{% setting 'ROOT_APP_URL' %}/api/duplicate_sourcedata/?copy_id={{rt.0}}&new_id={{table.table_id}}">{{rt.1}}</a>
+							{% endfor %}
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		{% endfor %}
+	{% else %}
+		<h4 class="pager-header">No new dataset to add</h4>
+	{% endif %}
+</div>
+{% endblock %}
+
+{% block bottomjs %}
+<!-- JQuery Cookie-->
+<script src="{% static 'jquery.cookie/jquery.cookie.js' %}"></script>
+<!-- JQuery URL-->
+<script src="{% static 'jquery.url/url.js' %}"></script>
+<!-- Page JS -->
+<script>
+function getUrlParms(){
+	obj_query = $.url('?');
+	$.each(obj_query,function(key, value){
+		if (key == 'search'){
+			$('#txt-search').val(value);
+		}
+		else{
+			$('#sel-'+key).val(value);
+		}
+	});
+}
+
+function applyFilter(){
+	var year = $('#sel-year').val();
+	var geography = $('#sel-geography').val();
+	var extent = $('#sel-extent').val();
+	var search = $('#txt-search').val();
+	console.log(search);
+	var url_parms = '?year=' + year + '&geography=' + geography + '&extent=' + extent +'&search=' + search;
+	var page_url = $.url('path');
+	var redirect_url = page_url + url_parms;
+	window.location = redirect_url;
+}
+
+function clearFilters(){
+	$('.request-filter').each(function(index,obj){
+		obj.value = '';
+	});	
+}
+
+$( document ).ready(function() {
+	if ($.url('query')){
+		getUrlParms()
+	}
+	$('#sel-year').change(function(){applyFilter()});
+	$('#sel-geography').change(function(){applyFilter()});
+	$('#sel-extent').change(function(){applyFilter()});
+	$('#btn-search').click(function(){applyFilter()});
+	$('#txt-search').keypress(function(event){
+		if (event.which == 13) {applyFilter();}
+	});
+	$('#btn-clearfilters').click(function(){
+		clearFilters();
+		applyFilter();
+	});
+});
+</script>
+{% endblock %}
